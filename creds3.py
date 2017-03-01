@@ -289,7 +289,6 @@ def putSecret(name, secret, version="", kms_key="alias/creds3",
     client = session.client('s3', region_name=region)
     (bucket, prefix) = get_s3_bucket_prefix(location)
     version_exists = True
-    print("DEBUG: Key in putSecret is %s" % (prefix + name + "/" + version))
     try:
         obj = client.get_object(Bucket = bucket,
             Key = prefix + name + "/" + version)
@@ -329,7 +328,7 @@ def getAllSecrets(version="", region=None, location=None,
     secrets = listSecrets(region, location, **kwargs)
 
     for secret in secrets:
-        credential = secrets[0]["name"]
+        credential = secret["name"]
         try:
             output[credential] = getSecret(credential,
                                            version,
@@ -383,7 +382,6 @@ def putSecretAction(args, location, region, **session_params):
     else:
         version = args.version
 
-    print("DEBUG: version in putSecretAction is %s" % (version))
     try:
         if putSecret(args.credential, args.value, version,
                      kms_key=args.key, region=region, location=location,

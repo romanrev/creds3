@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='creds3',
     version='1',
-    description='A utility for managing secrets in the cloud using AWS KMS and DynamoDB',
+    description='A clone of Credstash for managing secrets in the cloud using AWS KMS and S3',
     license='Apache2',
     url='https://github.com/romanrev/creds3',
     classifiers=[

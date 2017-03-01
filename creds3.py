@@ -493,50 +493,41 @@ def deleteSecrets(name, region=None, location=None, **kwargs):
 
 
 @clean_fail
-def createS3Bucket(region=None, table="credential-store", **kwargs):
+def createS3Bucket(region=None, location=None, **kwargs):
     '''
-    create the secret store table in DDB in the specified region
+    create the secret store S3 bucket in the specified region
     '''
     session = get_session(**kwargs)
-    dynamodb = session.resource("dynamodb", region_name=region)
-    if table in (t.name for t in dynamodb.tables.all()):
-        print("Credential Store table already exists")
-        return
+    client = session.client("s3", region_name=region)
+    (bucket, prefix) = get_s3_bucket_prefix(location)
 
-    print("Creating table...")
-    dynamodb.create_table(
-        TableName=table,
-        KeySchema=[
-            {
-                "AttributeName": "name",
-                "KeyType": "HASH",
-            },
-            {
-                "AttributeName": "version",
-                "KeyType": "RANGE",
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                "AttributeName": "name",
-                "AttributeType": "S",
-            },
-            {
-                "AttributeName": "version",
-                "AttributeType": "S",
-            },
-        ],
-        ProvisionedThroughput={
-            "ReadCapacityUnits": 1,
-            "WriteCapacityUnits": 1,
-        }
-    )
+    try:
+        response = client.create_bucket(ACL='private',
+                Bucket=bucket,
+                CreateBucketConfiguration={
+                    'LocationConstraint': region
+                })
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
+            print("Credential Store bucket '%s' exists and owned by you" %
+                    bucket)
+        elif e.response["Error"]["Code"] == "BucketAlreadyExists":
+            print("Bucket '%s' exists already - please use another name" %
+                    bucket)
+            return
+        else:
+            fatal(e)
 
-    print("Waiting for table to be created...")
-    client = session.client("dynamodb", region_name=region)
-    client.get_waiter("table_exists").wait(TableName=table)
-
-    print("Table has been created. "
+    print("Checking the Credential Store bucket '%s' ..." % bucket)
+    response = client.head_bucket(Bucket=bucket)
+    customer_kms = response.get('ResponseMetadata').get('SSECustomerKeyMD5')
+    if customer_kms:
+        print("Looks like S3 bucket '%s' employs encryption with a "
+                "customer  KMS key %s" % (bucket, customer_kms))
+        print("This is not currently supported for Credential Store!")
+        fatal(" ".join(["Disable encryption with customer KMS for %s",
+                "or use different S3 bucket for Credential Store"]) % bucket)
+    print("Credential Store is ok. "
           "Go read the README about how to create your KMS key")
 
 

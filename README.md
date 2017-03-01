@@ -57,10 +57,11 @@ $ sudo yum install gcc libffi-devel python-devel openssl-devel
 
 In either case, once you've installed the dependencies, you can do `pip install creds3` as usual.
 
-See https://cryptography.io/en/latest/installation/ for more information.
+See [this](https://cryptography.io/en/latest/installation/) for more information
 
 
 ## What is this?
+
 Software systems often need access to some shared credential. For example,
 your web application needs access to a database password, or an API key
 for some third party service.
@@ -83,6 +84,11 @@ After you complete the steps in the `Setup` section, you will have an
 encryption key in KMS (in this README, we will refer to that key as the
 `master key`), and a credential storage in an S3 bucket location.
 
+If you do not specify an S3 bucket location via the `-l` option to `setup`
+command, the bucket that will be created by default will have the name of
+`credential-store-AWSACCOUNTID` where the `AWSACCOUNTID` is the AWS
+account ID under which the bucket is created.
+
 ### Stashing Secrets
 
 Whenever you want to store/share a credential, such as a database password,
@@ -94,6 +100,15 @@ key to encrypt the credential value. It will then store the encrypted
 credential, along with the wrapped (encrypted) data encryption key in the
 credential store in an S3 location.
 
+The key and its value is stored in the specified S3 bucket location under
+the following structure:
+
+    credential-store-AWSACCOUNTID
+                            |
+                            ├── [credential 1 name]
+                            ...                  ├── [version number 1]
+                                                 ├── [version number 2]
+                                                 ...
 ### Getting Secrets
 
 When you want to fetch the credential, for example as part of the bootstrap
@@ -139,9 +154,9 @@ there is no way in `creds3` to change its value (although you could go fiddle
 with the bits in the version file in S3 bucket, but you shouldn't do that).
 Credential rotation is handed through versions. Suppose you do
 `creds3 put foo bar`, and then decide later to rotate `foo`,
-you can put version 2 of `foo` by doing `creds3 put foo baz -v `.
+you can put version 2 of `foo` by doing `creds3 put -v 2 foo baz`.
 The next time you do `creds3 get foo`, it will return `baz`. You can get
-specific credential versions as well (with the same `-v` flag). You can
+specific credential versions as well (with the `-v <version>` flag). You can
 fetch a list of all credentials in the credential-store and their versions
 with the `list` command.
 

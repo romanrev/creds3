@@ -217,7 +217,7 @@ def getHighestVersion(name, region=None, location=None,
     '''
 
     (bucket, prefix) = get_s3_bucket_prefix(location)
-    secrets = listSecrets(region, bucket + "/" + prefix + name, **kwargs)
+    secrets = listSecrets(region, bucket + "/" + prefix + name, True, **kwargs)
 
     if len(secrets) == 0:
         return 0
@@ -240,7 +240,7 @@ def clean_fail(func):
     return func_wrapper
 
 
-def listSecrets(region=None, location=None, **kwargs):
+def listSecrets(region=None, location=None, only_latest=True, **kwargs):
     '''
     list all credentials stored in the S3 location,
     and return the names and latest versions of every credential
@@ -257,11 +257,14 @@ def listSecrets(region=None, location=None, **kwargs):
             "datetime": item["LastModified"]} for item in response["Contents"] ],
             key=lambda s: s["datetime"],
             reverse=True)
-        # Form an array with the latest versions of the objects only
-        saved = set()
-        saved_add = saved.add
-        latest = [ item for item in secrets
+        if only_latest:
+            # Form an array with the latest versions of the objects only
+            saved = set()
+            saved_add = saved.add
+            latest = [ item for item in secrets
                 if not (item["name"] in saved or saved_add(item["name"])) ]
+        else:
+            latest = secrets
     else:
         latest = []
 
@@ -325,7 +328,7 @@ def getAllSecrets(version="", region=None, location=None,
 
     client = session.client('s3', region_name=region)
     kms = session.client('kms', region_name=region)
-    secrets = listSecrets(region, location, **kwargs)
+    secrets = listSecrets(region, location, True, **kwargs)
 
     for secret in secrets:
         credential = secret["name"]
@@ -403,6 +406,7 @@ def getSecretAction(args, location, region, **session_params):
                                      for x
                                      in listSecrets(region=region,
                                                     location=location,
+                                                    only_latest=True,
                                                     **session_params)])
             print(json.dumps(dict((name,
                                    getSecret(name,
@@ -447,7 +451,8 @@ def getSecret(name, version="", region=None,
     (bucket, prefix) = get_s3_bucket_prefix(location)
 
     if version == "":
-        secrets = listSecrets(region, bucket + "/" + prefix + name, **kwargs)
+        secrets = listSecrets(region, bucket + "/" + prefix + name,
+                True, **kwargs)
         # do a consistent fetch of the credential with the highest version
         if secrets:
             obj = client.get_object(Bucket = bucket,
@@ -639,6 +644,7 @@ def get_digest(digest):
 def list_credentials(region, location, **session_params):
     credential_list = listSecrets(region=region,
                                   location=location,
+                                  only_latest=False,
                                   **session_params)
     if credential_list:
         # print list of credential names and versions,

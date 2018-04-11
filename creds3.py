@@ -16,7 +16,7 @@
 from __future__ import print_function
 
 import argparse
-import codecs
+import binascii
 import csv
 import json
 import operator
@@ -566,9 +566,9 @@ def open_aes_ctr_legacy(key_service, material):
     digest_method = material.get('digest', DEFAULT_DIGEST)
     ciphertext = b64decode(material['contents'])
     if hasattr(material['hmac'], "value"):
-        hmac = codecs.decode(material['hmac'].value, "hex")
+        hmac = binascii.unhexlify(material['hmac'].value)
     else:
-        hmac = codecs.decode(material['hmac'], "hex")
+        hmac = binascii.unhexlify(material['hmac'])
     return _open_aes_ctr(key, LEGACY_NONCE, ciphertext, hmac, digest_method).decode("utf-8")
 
 
@@ -586,7 +586,7 @@ def seal_aes_ctr_legacy(key_service, secret, digest_method=DEFAULT_DIGEST):
     return ( b64encode(ciphertext).decode('utf-8'), 
             {
               'key': b64encode(encoded_key).decode('utf-8'),
-              'hmac': codecs.encode(hmac, "hex_codec"),
+              'hmac': binascii.hexlify(hmac).decode('utf-8'),
               'digest': digest_method }
             )
 

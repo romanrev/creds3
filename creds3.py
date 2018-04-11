@@ -459,7 +459,7 @@ def getSecret(name, version="", region=None,
                     Key = prefix + name + "/" + secrets[0]["version"])
         else:
             raise ItemNotFound("Item {'name': '%s'} couldn't be found in %s" %
-                    name, location)
+                    (name, location))
     else:
         obj = client.get_object(Bucket = bucket,
                     Key = prefix + name + "/" + version)

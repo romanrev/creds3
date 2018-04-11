@@ -252,8 +252,8 @@ def listSecrets(region=None, location=None, only_latest=True, **kwargs):
     if response.get("Contents"):
         # Get the list of all object in the S3 location
         # sorted by the modification date in reverse order
-        secrets = sorted( [{ "name": item["Key"].split('/')[0], 
-            "version": item["Key"].split('/')[1], 
+        secrets = sorted( [{ "name": item["Key"].split('/')[0],
+            "version": item["Key"].split('/')[1],
             "datetime": item["LastModified"]} for item in response["Contents"] ],
             key=lambda s: s["datetime"],
             reverse=True)
@@ -583,7 +583,7 @@ def seal_aes_ctr_legacy(key_service, secret, digest_method=DEFAULT_DIGEST):
     ciphertext, hmac = _seal_aes_ctr(
         secret, key, LEGACY_NONCE, digest_method,
     )
-    return ( b64encode(ciphertext).decode('utf-8'), 
+    return ( b64encode(ciphertext).decode('utf-8'),
             {
               'key': b64encode(encoded_key).decode('utf-8'),
               'hmac': codecs.encode(hmac, "hex_codec"),
